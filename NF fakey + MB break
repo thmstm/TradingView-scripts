@@ -1,0 +1,161 @@
+// Created by @thmstm (https://www.tradingview.com/u/thms/) September 4 2017 
+// Inspired by a concept by Nial Fuller (http://www.learntotradethemarket.com/)
+// https://github.com/thmstm/NF-fakey-MB-break
+
+
+// This script includes the price action based indicator for the fakey signal and
+// the mother bar (MB) break signal combined together. Both of them may be switched
+// on or off separately. As a bonus, inside bars are also markable up.
+
+// The fakey signal is a pinbar formation coming after a structure of a mother bar
+// (MB) followed by one or more inside bars (IBs). The fakey pinbar has to break
+// the mother bar's (MB's) low or high, depending on the direction of the trend,
+// but in line with the trend.
+
+// The mother bar (MB) break signal is a breakout pattern where the mother bar's
+// (MB's) low or high is broken, subsequent one or more inside bars (IBs), depending
+// on the direction of the trend, but in line with the trend.
+
+
+//@version=3
+study(title="thms - NF: fakey + MB break", shorttitle="NF: fakey + MB break", overlay=true)
+
+//Input for the maximum number of the coiling inside bars that may be considered as a setup
+//maxNumCoilingIBs = input(title="Max number of coiling inside bars", type=integer, minval=1, maxval=20, defval=5)
+
+// Input for pinbar shape and size
+// Input for the number of days to take into consideration when comparing a pinbar's range to previous bars' average range
+pinbarRangeForNumDays = input(title="Number of days to compare pinbar range size", type=integer, minval=1, maxval=100, defval=21)
+// Input for the proportion, how big a pinbar's range should be as compared to previous bars' average range
+pinbarRangeForNumDaysMultiplier = input(title="Pinbar range size at least at [%] of above average", type=integer, minval=1, defval=100)
+// Input for the proportion, where the OPEN and CLOSE should be within the [HIGH,LOW] range of the candle to classify as a pinbar
+pinbarMultiplierOfOpen = input(title="Pinbar's open > [%] of bar", type=integer, minval=0, maxval=100, defval=55)
+pinbarMultiplierOfClose = input(title="Pinbar's close > [%] of bar", type=integer, minval=0, maxval=100, defval=55)
+
+// Input for the size of the marks for an Inside Bar (IB), a Mother Bar (MB) break and a Fakey
+IBHeight = input(title="Size of the arrows showing Inside Bars (IBs)", type=integer, minval=1, defval=10)
+MBHeight = input(title="Size of the arrows showing Mother Bar breaks (MBs)", type=integer, minval=1, defval=20)
+fakeyHeight = input(title="Size of the arrows showing Fakeys", type=integer, minval=1, defval=100)
+
+// Input for the number of how many of the last Inside Bars (IBs), Mother Bar (MB) breaks and Fakeys to display
+// numLastIBs = input(title="Number of how many of the last Inside Bars (IBs) to show", type=integer, minval=1, defval=10)
+// numLastMBs = input(title="Number of how many of the last Mother Bar (MB) breaks to show", type=integer, minval=1, defval=3)
+// numLastFakeys = input(title="Number of how many of the last Fakeys to show", type=integer, minval=1, defval=3)
+
+// MB_low = ohlc4
+// MB_high = ohlc4
+
+// for i = maxNumCoilingIBs+1 to 1
+//     if (lowest(i) == low[i-1]) and (highest(i) == high[i-1])
+//         MB_low := low[i-1]
+//         MB_high := high[i-1]
+//         break
+//     else
+//         continue
+
+// Determining what is the HIGH of the Mother Bar (MB) candle, if any
+MB_high = if lowest(5) == low[4] and highest(5) == high[4]
+    high[4]
+else
+    if lowest(4) == low[3] and highest(4) == high[3]
+        high[3]
+    else
+        if lowest(3) == low[2] and highest(3) == high[2]
+            high[2]
+        else
+            if lowest(2) == low[1] and highest(2) == high[1]
+                high[1]
+            else
+                ohlc4
+
+// // Determining what is the LOW of the Mother Bar (MB) candle, if any
+MB_low = if lowest(5) == low[4] and highest(5) == high[4]
+    low[4]
+else
+    if lowest(4) == low[3] and highest(4) == high[3]
+        low[3]
+    else
+        if lowest(3) == low[2] and highest(3) == high[2]
+            low[2]
+        else
+            if lowest(2) == low[1] and highest(2) == high[1]
+                low[1]
+            else
+                ohlc4
+
+// Determining if there is no more Inside Bar (IB) candle
+IB_NoMore = (MB_high == MB_low)
+
+// Determining whether the bar is an Inside Bar (IB)
+isIB() => high < MB_high and low > MB_low
+// Determining the direction of the Inside Bar (IB)
+isDown() => close < open
+isDoji() => close == open
+isUp() => close > open
+IB_Down() => isIB() and isDown()
+IB_Doji() => isIB() and isDoji()
+IB_Up() => isIB() and isUp()
+
+// Preparing for drawing arrows upwards and downwards if the bar is an Inside Bar (IB)
+IB_DownArrow = isIB() ? -high : na
+IB_UpArrow = isIB() ? low : na
+
+// Determining the previous bars' average range
+// lo = 0
+// hi = 0
+// for i = 1 to pinbarRangeForNumDays
+//     lo := lo + low[i]
+//     hi := hi + high[i]
+avgRange = sma((high - low), pinbarRangeForNumDays)
+
+// Determining whether there is a bar that might be a pinbar eligible for the Fakey
+pinbarLongPossible = (open > MB_low[1] and open <= MB_high[1] and close > MB_low[1] and close <= MB_high[1] and low < MB_low[1]) and ((high - low) > pinbarRangeForNumDaysMultiplier / 100 * avgRange)
+pinbarShortPossible = (open > MB_low[1] and open <= MB_high[1] and close > MB_low[1] and close <= MB_high[1] and high > MB_high[1]) and ((high - low) > pinbarRangeForNumDaysMultiplier / 100 * avgRange)
+// Determining whether the bar possibly eligible for the Fakey meets the criteria of shape as given in the inputs, i.e. whether it is enough "pinbar-shaped"
+pinbarLong = pinbarLongPossible and (open > low + (high - low) * pinbarMultiplierOfOpen / 100) and (close > low + (high - low) * pinbarMultiplierOfClose / 100)
+pinbarShort = pinbarShortPossible and (open < high - (high - low) * pinbarMultiplierOfOpen / 100) and (close < high - (high - low) * pinbarMultiplierOfClose / 100)
+
+// Determining whether there is a Fakey actually
+Fakey = if pinbarLong
+    low
+else
+    if pinbarShort
+        -high
+    else
+        na
+
+// Determining whether there is a Mother Bar (MB) break actually
+MB_break = if (MB_high[1] != ohlc4[1]) and (close > MB_high[1])
+    MB_high
+else
+    if (MB_low[1] != ohlc4[1]) and (close < MB_low[1])
+        -MB_low
+    else
+        na
+
+// Colouring the Fakey candle
+//barcolor(Fakey == low ? lime : na)
+//barcolor(Fakey == -high ? yellow : na)
+
+// Annotating the Inside Bars (IB)
+// Drawing arrows upwards and downwards on Inside Bars (IB)
+plotarrow(IB_DownArrow, title="Inside bar (lefele nyíl)", colordown=white, transp=60, maxheight=IBHeight)//, show_last=numLastIBs)
+plotarrow(IB_UpArrow, title="Inside bar (felfele nyíl)", colorup=white, transp=60, maxheight=IBHeight)//, show_last=numLastIBs)
+// Coloring Inside Bars (IB)
+//barcolor(IB_Down() ? #FFCCCC : IB_Up() ? #CCFFCC : IB_Doji() ? #CCCCCC : na)
+
+// Annotating the Mother Bar (MB) break
+// Drawing a short arrow on Mother Bar (MB) break
+plotarrow(MB_break, title="Mother bar break", colorup=#00FFFF, colordown=#FFFF00, transp=30, maxheight=MBHeight)//, show_last=numLastMBs)
+// Coloring Mother Bar (MB) break
+MB_color = MB_break > 0 ? #00FFFF : MB_break < 0 ? #FFFF00 : na //#55FB6D : MB_break < 0 ? #FB556D : na
+//barcolor(MB_color)
+bgcolor(MB_color, transp=95)
+
+// Annotating the Fakey setup
+// Drawing a long arrow on Fakey setup
+plotarrow(Fakey, title="Fakey setup", colorup=#00FFFF, colordown=#FFFF00, transp=0, maxheight=fakeyHeight)//, show_last=numLastFakeys)
+// Coloring Fakey setup
+Fakey_color = Fakey > 0 ? #00FFFF : Fakey < 0 ? #FFFF00 : na // #00CC00 : Fakey < 0 ? #FF0000 : na
+//barcolor(Fakey_color)
+bgcolor(Fakey_color, transp=85)
