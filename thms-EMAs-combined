@@ -1,0 +1,38 @@
+//@version=3
+study(title="thms - EMAs combined", shorttitle="thms: EMAs", overlay=true)
+
+// Length of periods to average on different timeframes
+len1m = 1440    // EMA shows here the average value for the past 24 hours
+len5m = 288     // EMA shows here the average value for the past 24 hours
+len1h1 = 1200   // EMA shows here the average value for the past 50 days
+len1h2 = 4800   // EMA shows here the average value for the past 200 days
+len1hNF1 = 150  // EMA shows here the average value for the past 150 hours according to Niall Fuller's method
+len1hNF2 = 365  // EMA shows here the average value for the past 365 hours according to Niall Fuller's method
+len4h1 = 300    // EMA shows here the average value for the past 50 days
+len4h2 = 1200   // EMA shows here the average value for the past 200 days
+len1D1 = 50     // EMA shows here the average value for the past 50 days
+len1D2 = 200    // EMA shows here the average value for the past 200 days
+len1DNF1 = 8    // EMA shows here the average value for the past 8 days according to Niall Fuller's method
+len1DNF2 = 21   // EMA shows here the average value for the past 21 days according to Niall Fuller's method
+len1W = 52      // EMA shows here the average value for the past 1 year
+len1M = 84      // EMA shows here the average value for the past 7 years
+
+// Type of data to count average on
+ema_src = close
+
+// Defining the EMAs that will show up on different time frames
+// Where 'ema_length_X' == 1, that EMA will not show up on the given period
+ema_length_1 = period == '1' ? 1 : period == '5' ? 1 : period == '60' ? len1hNF1 : period == '240' ? 1 : period == 'D' ? len1DNF1 : period == 'W' ? 1 : period == 'M' ? 1 : 1
+ema_length_2 = period == '1' ? 1 : period == '5' ? 1 : period == '60' ? len1hNF2 : period == '240' ? 1 : period == 'D' ? len1DNF2 : period == 'W' ? 1 : period == 'M' ? 1 : 1
+
+// Invert comment signs below for showing 50D and 200D EMAs
+// ema_length_3 = period == '1' ? len1m : period == '5' ? len5m : period == '60' ? len1h1 : period == '240' ? len4h1 : period == 'D' ? len1D1 : period == 'W' ? len1W : period == 'M' ? len1M : 1
+ema_length_3 = period == '1' ? len1m : period == '5' ? len5m : period == '60' ? 1 : period == '240' ? len4h1 : period == 'D' ? len1D1 : period == 'W' ? len1W : period == 'M' ? len1M : 1
+// ema_length_4 = period == '1' ? 1 : period == '5' ? 1 : period == '60' ? len1h2 : period == '240' ? len4h2 : period == 'D' ? len1D2 : period == 'W' ? 1 : period == 'M' ? 1 : 1
+ema_length_4 = period == '1' ? 1 : period == '5' ? 1 : period == '60' ? 1 : period == '240' ? len4h2 : period == 'D' ? len1D2 : period == 'W' ? 1 : period == 'M' ? 1 : 1
+
+// Plotting the EMAs
+plot(ema_length_1 == 1 ? na : ema(ema_src, ema_length_1), title="8D / 150h", style=line, linewidth=1, color=#656565, transp=50)
+plot(ema_length_2 == 1 ? na : ema(ema_src, ema_length_2), title="21D / 365h", style=line, linewidth=2, color=#656565, transp=40)
+plot(ema_length_3 == 1 ? na : ema(ema_src, ema_length_3), title="1D / 50D / 52W / 7Y", style=circles, linewidth=1, color=#115394, transp=5)
+plot(ema_length_4 == 1 ? na : ema(ema_src, ema_length_4), title="200D", style=circles, linewidth=1, color=#3D85C6, transp=5)
